@@ -33,5 +33,5 @@ Add the plug-in for robot control in rqt.
 ```bash
 rosrun map_server map_saver -f /path/to/save/map/map_name
 ```
-This will create a *.pmg* image of the map and *.yaml* file containing all nessecary information for the map. 
+This will create a *.pmg* image of the map and *.yaml* file containing all nessecary information for the map. Please note that the path has to exists.
 In the .yaml file the path to the image is relative to the root directory of the computer it was created on. In order to avoid errors later on it is recommended to adjust this path too your needs. 
