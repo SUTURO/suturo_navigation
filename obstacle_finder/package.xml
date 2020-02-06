@@ -1,0 +1,19 @@
+<package format="2">
+  <name>obstacle_finder</name>
+  <version>0.0.1</version>
+  <description>
+  Compares LaserScans with the map and publishes obstacles that are not in the map
+  </description>
+  <maintainer email="stelter2@uni-bremen.de">Marc Stelter</maintainer>
+  <license>ToDo</license>
+
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>sensor_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>geometry_msgs</depend>
+
+  <exec_depend>rospy</exec_depend>
+
+</package>
