@@ -8,7 +8,7 @@ from tf2_ros import Buffer, TransformListener
 import math
 from tf.transformations import euler_from_quaternion
 from visualization_msgs.msg import Marker, MarkerArray
-from geometry_msgs.msg import Point
+from geometry_msgs.msg import Point, PoseArray, Pose, PoseStamped
 
 
 class Cluster:
@@ -21,12 +21,14 @@ class ObstacleFinder:
 
     def __init__(self):
         self._map = None
+        self._pose = None
         self._tf_buffer = Buffer()
         self._tf_listener = TransformListener(self._tf_buffer)
 
         self._map_sub = rospy.Subscriber("/map", OccupancyGrid, self.update_map)
         self._laser_sub = rospy.Subscriber("/hsrb/base_scan", LaserScan, self.find_objects)
-        self._pub = rospy.Publisher("marker_stuff", MarkerArray, queue_size=10)
+        #self._pose_sub = rospy.Subscriber("/global_pose", PoseStamped, self.update_pose)
+        self._pub = rospy.Publisher("object_finder", PoseArray, queue_size=10)
 
         self._occ_threshold = 40
         self._min_scans_cluster = 10
@@ -39,7 +41,7 @@ class ObstacleFinder:
         self._clusters = []
 
     def update_pose(self, pose):
-        self._pose = pose
+        self._pose = pose.pose
 
     def update_map(self, map):
         self._map = map
@@ -83,6 +85,7 @@ class ObstacleFinder:
         i = 0
         for c in clusters:
             # print(c)
+            '''
             marker = Marker()
             marker.header.frame_id = "map"
             marker.header.stamp = rospy.Time.now()
@@ -106,31 +109,58 @@ class ObstacleFinder:
             marker.pose.position = p2
             markers.append(marker)
             i += 1
-        self._pub.publish(MarkerArray(markers=markers))
+            '''
+
+            p2 = Point()
+            for p in c.points:
+                p2.x += p.x * self._map.info.resolution
+                p2.y += p.y * self._map.info.resolution
+            p2.x /= c.num_points
+            p2.y /= c.num_points
+            p2.x += self._map.info.origin.position.x
+            p2.y += self._map.info.origin.position.y
+            p2.z = c.points[0].z
+
+            pose = Pose()
+            pose.position = p2
+            pose.orientation.w = 1
+            markers.append(pose)
+        pa = PoseArray()
+        pa.header.frame_id = "map"
+        pa.header.stamp = rospy.Time.now()
+        pa.poses = markers
+        self._pub.publish(pa)
 
     def find_objects(self, laser_scan):
         self._scan += 1
-        if self._scan == self._use_every_n_scan:
+        if not self._map == None and self._scan == self._use_every_n_scan:
             self._scan = 0
             first = True
             clusters = []
             cur_Cluster = Cluster()
 
             angle = laser_scan.angle_min
-            map_laser = self._tf_buffer.lookup_transform(self._map.header.frame_id, laser_scan.header.frame_id,
-                                                         rospy.Time())
+            map_laser = self._tf_buffer.lookup_transform(self._map.header.frame_id, laser_scan.header.frame_id, rospy.Time.now())
+
+            #pose = self._pose
+
             theta = euler_from_quaternion(
                 [map_laser.transform.rotation.x, map_laser.transform.rotation.y, map_laser.transform.rotation.z,
                  map_laser.transform.rotation.w])[2]
+
+            #theta = euler_from_quaternion([pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w])[2]
+
             # print(map_laser, theta)
             for i, range in enumerate(laser_scan.ranges):
                 if laser_scan.range_min <= range <= laser_scan.range_max:
                     # og = OccupancyGrid()
                     x = range * math.cos(angle + theta) + map_laser.transform.translation.x
                     y = range * math.sin(angle + theta) + map_laser.transform.translation.y
+                    #x = range * math.cos(angle + theta) + pose.position.x
+                    #y = range * math.sin(angle + theta) + pose.position.y
                     ix = int((x - self._map.info.origin.position.x) / self._map.info.resolution)
                     iy = int((y - self._map.info.origin.position.y) / self._map.info.resolution)
-                    p = Point(ix, iy, 0)
+                    p = Point(ix, iy, map_laser.transform.translation.z)
                     # print("Obstacle at: ", x,y)
                     # marker.points.append(Point(x, y, 0))
 
