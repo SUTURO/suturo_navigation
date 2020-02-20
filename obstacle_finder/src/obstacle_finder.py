@@ -4,7 +4,7 @@ import rospy
 from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import OccupancyGrid, MapMetaData
 from geometry_msgs.msg import Pose, PoseArray
-from tf2_ros import Buffer, TransformListener
+from tf2_ros import Buffer, TransformListener, LookupException, ConnectivityException
 import math
 from tf.transformations import euler_from_quaternion
 from visualization_msgs.msg import Marker, MarkerArray
@@ -79,7 +79,7 @@ class ObstacleFinder:
             return True
         return False
 
-    def pub_cluster(self, clusters):
+    def pub_cluster(self, clusters, stamp):
         # print(clusters.__sizeof__())
         markers = []
         i = 0
@@ -127,7 +127,7 @@ class ObstacleFinder:
             markers.append(pose)
         pa = PoseArray()
         pa.header.frame_id = "map"
-        pa.header.stamp = rospy.Time.now()
+        pa.header.stamp = stamp
         pa.poses = markers
         self._pub.publish(pa)
 
@@ -140,8 +140,12 @@ class ObstacleFinder:
             cur_Cluster = Cluster()
 
             angle = laser_scan.angle_min
-            map_laser = self._tf_buffer.lookup_transform(self._map.header.frame_id, laser_scan.header.frame_id, rospy.Time.now())
-
+            try:
+                map_laser = self._tf_buffer.lookup_transform(self._map.header.frame_id, laser_scan.header.frame_id, rospy.Time(0))
+            except (LookupException, ConnectivityException):
+                print("no tf scan aborted")
+                self._scan = self._use_every_n_scan - 1
+                return
             #pose = self._pose
 
             theta = euler_from_quaternion(
@@ -176,7 +180,7 @@ class ObstacleFinder:
                 angle += laser_scan.angle_increment
             if self._min_scans_cluster <= cur_Cluster.num_points and not self.cluster_in_map(cur_Cluster):
                 clusters.append(cur_Cluster)
-            self.pub_cluster(clusters)
+            self.pub_cluster(clusters, laser_scan.header.stamp)
 
             # self._pub.publish(marker)
 
