@@ -1,0 +1,10 @@
+<launch>
+  <arg name="map_file" default="$(find maps)/hsr_lab/map.yaml"/>
+
+  <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)" />
+
+  <include file="$(find snap_map_icp)/launch/snap_map_icp.launch" />
+
+  <node name="tf_buffer" pkg="tf2_ros" type="buffer_server" />
+
+</launch>
