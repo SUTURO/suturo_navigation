@@ -17,6 +17,7 @@
 
   <exec_depend>snap_map_icp</exec_depend>
   <exec_depend>obstacle_finder</exec_depend>
+  <exec_depend>suturo_navigation_fix</exec_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->
