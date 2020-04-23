@@ -10,7 +10,7 @@
   <node pkg="suturo_navigation_fix" name="suturo_navigation_fix" type="nav_fix.py" output="screen" 
 		if="$(eval run_nav_fix == true)"/>
 
-  <node pkg="obstacle_finder" name="obstacle_finder" type="obstacle_finder.py" output="screen"
+  <node pkg="obstacle_finder" name="obstacle_finder" type="object_finder.py" output="screen"
 		if="$(eval run_obstacle_finder == true)"/>
 
   <node name="tf_buffer" pkg="tf2_ros" type="buffer_server" />
