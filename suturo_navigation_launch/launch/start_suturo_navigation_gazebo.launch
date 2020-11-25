@@ -1,5 +1,5 @@
 <launch>
-  <arg name="map_file" default="$(find maps)/corona_sim/sim_v1.yaml"/>
+  <arg name="map_file" default="$(find suturo_resources)/maps/corona_sim/sim_v1.yaml"/>
   <arg name="run_obstacle_finder" default="true"/>
   <arg name="run_nav_fix" default="false"/>
 
