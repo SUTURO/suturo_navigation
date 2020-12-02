@@ -34,10 +34,10 @@ class ObstacleFinder:
         self._pub = rospy.Publisher("object_finder", PoseArray, queue_size=10)
 
         self._occ_threshold = 40
-        self._min_scans_cluster = 10
-        self._min_percentage_covered = 0.7
-        self._rad_neighbour = 0.1
-        self._error_map = 0.1
+        self._min_scans_cluster = 3
+        self._min_percentage_covered = 0.3
+        self._rad_neighbour = 0.15
+        self._error_map = 0.15
         self._use_every_n_scan = 15
         self._scan = 0
 
