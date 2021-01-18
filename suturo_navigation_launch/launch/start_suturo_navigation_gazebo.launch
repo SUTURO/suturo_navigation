@@ -1,9 +1,6 @@
 <launch>
-  <arg name="map_file" default="$(find suturo_resources)/maps/corona_sim/sim_v1.yaml"/>
   <arg name="run_obstacle_finder" default="true"/>
   <arg name="run_nav_fix" default="false"/>
-
-  <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)" />
 
   <include file="$(find snap_map_icp)/launch/snap_map_icp.launch" />
 
@@ -12,7 +9,4 @@
 
   <node pkg="obstacle_finder" name="obstacle_finder" type="object_finder.py" output="screen"
 		if="$(eval run_obstacle_finder == true)"/>
-
-  <node name="tf_buffer" pkg="tf2_ros" type="buffer_server" />
-
 </launch>
