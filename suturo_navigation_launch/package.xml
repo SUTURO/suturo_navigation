@@ -2,7 +2,7 @@
 <package format="2">
   <name>suturo_navigation_launch</name>
   <version>0.0.1</version>
-  <description>The snap_map_icp-launch package</description>
+  <description>The suturo_navigation_launch package</description>
 
   <maintainer email="stelter2@uni-bremen.de">marc</maintainer>
 
@@ -15,9 +15,9 @@
   <!--   <doc_depend>doxygen</doc_depend> -->
   <buildtool_depend>catkin</buildtool_depend>
 
-  <exec_depend>snap_map_icp</exec_depend>
   <exec_depend>obstacle_finder</exec_depend>
   <exec_depend>suturo_navigation_fix</exec_depend>
+  <exec_depend>global_planner</exec_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->

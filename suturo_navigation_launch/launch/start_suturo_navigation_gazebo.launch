@@ -1,12 +1,11 @@
 <launch>
-  <arg name="run_obstacle_finder" default="true"/>
-  <arg name="run_nav_fix" default="false"/>
+    <arg name="run_obstacle_finder" default="true"/>
+    <arg name="run_nav_fix" default="false"/>
+    <arg name="run_path_planner" default="true"/>
 
-  <include file="$(find snap_map_icp)/launch/snap_map_icp.launch" />
-
-  <node pkg="suturo_navigation_fix" name="suturo_navigation_fix" type="nav_fix.py" output="screen" 
-		if="$(eval run_nav_fix == true)"/>
-
-  <node pkg="obstacle_finder" name="obstacle_finder" type="object_finder.py" output="screen"
-		if="$(eval run_obstacle_finder == true)"/>
+    <include file="$(find suturo_navigation_launch)/launch/start_suturo_navigation.launch">
+        <arg name="run_obstacle_finder" value="$(arg run_obstacle_finder)"/>
+        <arg name="run_nav_fix" value="$(arg run_nav_fix)"/>
+        <arg name="run_path_planner" value="$(arg run_path_planner)"/>
+    </include>
 </launch>

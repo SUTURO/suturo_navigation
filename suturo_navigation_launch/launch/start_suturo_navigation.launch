@@ -1,12 +1,19 @@
 <launch>
-  <arg name="run_obstacle_finder" default="true"/>
-  <arg name="run_nav_fix" default="true"/>
+    <arg name="run_obstacle_finder" default="true"/>
+    <arg name="run_nav_fix" default="true"/>
+    <arg name="run_path_planner" default="true"/>
 
-  <include file="$(find snap_map_icp)/launch/snap_map_icp.launch" />
+    <node pkg="suturo_navigation_fix" name="suturo_navigation_fix" type="nav_fix.py" output="screen"
+        if="$(eval run_nav_fix == true)"/>
 
-  <node pkg="suturo_navigation_fix" name="suturo_navigation_fix" type="nav_fix.py" output="screen" 
-		if="$(eval run_nav_fix == true)"/>
+    <node pkg="obstacle_finder" name="obstacle_finder" type="object_finder.py" output="screen"
+        if="$(eval run_obstacle_finder == true)"/>
 
-  <node pkg="obstacle_finder" name="obstacle_finder" type="object_finder.py" output="screen"
-		if="$(eval run_obstacle_finder == true)"/>
+    <group if="$(eval arg('run_path_planner') == true)">
+        <node pkg="global_planner" type="planner" name="planner">
+            <remap from="/plan" to="/suturo_plan"/>
+            <param name="allow_unknown" value="false"/>
+            <rosparam file="$(find suturo_navigation_launch)/config/costmap_params.yaml" command="load" ns="costmap"/>
+        </node>
+    </group>
 </launch>

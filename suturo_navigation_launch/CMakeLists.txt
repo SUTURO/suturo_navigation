@@ -1,16 +1,9 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(suturo_navigation_launch)
 
-find_package(catkin REQUIRED COMPONENTS
-  snap_map_icp
-)
+find_package(catkin REQUIRED)
 
-catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES snap_map_icp-launch
-#  CATKIN_DEPENDS snap_map_icp
-#  DEPENDS system_lib
-)
+catkin_package()
 
 include_directories(
 # include
