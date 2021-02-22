@@ -1,0 +1,5 @@
+<library path="libstatic_clearing_layer">
+    <class type="object_finder::StaticClearingLayer" base_class_type="costmap_2d::Layer">
+        <description>Layer that sets the occupied space in a map to free</description>
+    </class>
+</library>

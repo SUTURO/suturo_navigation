@@ -1,0 +1,21 @@
+<package format="2">
+  <name>object_finder</name>
+  <version>0.0.1</version>
+  <description>
+    Uses the sensors of the robot to find possible objects on the ground
+  </description>
+  <maintainer email="stelter2@uni-bremen.de">Marc Stelter</maintainer>
+  <license>ToDo</license>
+
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>roscpp</depend>
+  <depend>costmap_2d</depend>
+  <depend>dynamic_reconfigure</depend>
+
+  <export>
+    <costmap_2d plugin="${prefix}/costmap_plugins.xml" />
+  </export>
+
+</package>
