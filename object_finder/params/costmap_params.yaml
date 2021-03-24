@@ -4,8 +4,6 @@ transform_tolerance: 0.5
 #footprint: [[x0, y0], [x1, y1], ... [xn, yn]]
 robot_radius: 0.3
 
-
-
 obstacles:
   observation_sources: base_scan head_xtion
   enabled: true
@@ -40,6 +38,7 @@ global_frame: map
 robot_base_frame: base_footprint
 update_frequency: 5.0
 publish_frequency: 2.0
+
 
 #width: 20.0
 #height: 20.0

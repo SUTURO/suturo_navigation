@@ -3,6 +3,8 @@
 #include <tf2_ros/transform_listener.h>
 #include <geometry_msgs/Pose.h>
 #include <geometry_msgs/PoseArray.h>
+#include <dynamic_reconfigure/server.h>
+#include <object_finder/ObjectFinderConfig.h>
 
 struct pos {
     unsigned int x;
@@ -15,9 +17,24 @@ namespace object_finder {
     class ObjectFinder {
     public:
         ObjectFinder(tf2_ros::Buffer &tf) {
-            ros::NodeHandle nh;
+            ros::NodeHandle nh("~");
             costmap_ = std::make_shared<costmap_2d::Costmap2DROS>("costmap", tf);
-            object_publisher = nh.advertise<geometry_msgs::PoseArray>("object_finder", 10);
+            object_publisher_ = nh.advertise<geometry_msgs::PoseArray>("object_finder", 10);
+            ros::param::param<std::string>("global_frame_", global_frame_, "map");
+            ros::param::param<int>("frequency_", frequency_, 1);
+            max_object_size_ = 20;
+            min_object_size_ = 1;
+            threshold_occupied_ = 10;
+            dynamic_reconfigure::Server<ObjectFinderConfig> server;
+            dynamic_reconfigure::Server<ObjectFinderConfig>::CallbackType f;
+            f = boost::bind(&ObjectFinder::reconfigure_callback, this, _1, _2);
+            server.setCallback(f);
+        }
+
+        void reconfigure_callback(ObjectFinderConfig &config, uint32_t level) {
+            min_object_size_ = config.min_object_size;
+            max_object_size_ = config.max_object_size;
+            threshold_occupied_ = config.threshold_occupied;
         }
 
         std::vector<geometry_msgs::Pose> get_objects() {
@@ -31,7 +48,7 @@ namespace object_finder {
                 for (unsigned int y = 0; y < cm.getSizeInCellsY(); y++) {
                     //TODO: Add threashold for occupied to reconfgurable parameters
                     //Only process occupied cells
-                    if (cm.getCost(x, y) >= 10) {
+                    if (cm.getCost(x, y) >= threshold_occupied_) {
                         unsigned int i = cm.getIndex(x,y);
                         pos p;
                         p.i = i;
@@ -66,7 +83,7 @@ namespace object_finder {
             for (auto object : objects){
                 //TODO: add param for this
                 //Filter out things that are to big for the HSR
-                if (0 < object.size() < 10){
+                if (min_object_size_ <= object.size() <= max_object_size_){
                     geometry_msgs::Pose pose;
                     pose.orientation.w = 1.0;
                     cm.mapToWorld(object.front().x, object.front().y, pose.position.x, pose.position.y);
@@ -78,14 +95,14 @@ namespace object_finder {
 
         void publish_objects(std::vector<geometry_msgs::Pose> poses) {
             geometry_msgs::PoseArray pa;
-            pa.header.frame_id = "map";
+            pa.header.frame_id = global_frame_;
             pa.header.stamp = ros::Time::now();
             pa.poses = poses;
-            object_publisher.publish(pa);
+            object_publisher_.publish(pa);
         }
 
         void run() {
-            ros::Rate loop_rate(1);
+            ros::Rate loop_rate(frequency_);
             while (ros::ok()) {
                 publish_objects(get_objects());
                 ros::spinOnce();
@@ -95,7 +112,9 @@ namespace object_finder {
 
     private:
         std::shared_ptr<costmap_2d::Costmap2DROS> costmap_;
-        ros::Publisher object_publisher;
+        ros::Publisher object_publisher_;
+        std::string global_frame_;
+        int max_object_size_, min_object_size_, threshold_occupied_, frequency_;
     };
 
 }
