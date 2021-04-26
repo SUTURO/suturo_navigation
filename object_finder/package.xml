@@ -1,8 +1,8 @@
 <package format="2">
-  <name>obstacle_finder</name>
+  <name>object_finder</name>
   <version>0.0.1</version>
   <description>
-  Compares LaserScans with the map and publishes obstacles that are not in the map
+    Uses the sensors of the robot to find possible objects on the ground
   </description>
   <maintainer email="stelter2@uni-bremen.de">Marc Stelter</maintainer>
   <license>ToDo</license>
@@ -10,11 +10,12 @@
 
   <buildtool_depend>catkin</buildtool_depend>
 
-  <depend>sensor_msgs</depend>
-  <depend>nav_msgs</depend>
-  <depend>geometry_msgs</depend>
+  <depend>roscpp</depend>
+  <depend>costmap_2d</depend>
   <depend>dynamic_reconfigure</depend>
 
-  <exec_depend>rospy</exec_depend>
+  <export>
+    <costmap_2d plugin="${prefix}/costmap_plugins.xml" />
+  </export>
 
 </package>
