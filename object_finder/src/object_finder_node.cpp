@@ -22,16 +22,21 @@ namespace object_finder {
             object_publisher_ = nh.advertise<geometry_msgs::PoseArray>("object_finder", 10);
             ros::param::param<std::string>("global_frame_", global_frame_, "map");
             ros::param::param<int>("frequency_", frequency_, 1);
-            max_object_size_ = 20;
-            min_object_size_ = 1;
-            threshold_occupied_ = 10;
-            dynamic_reconfigure::Server<ObjectFinderConfig> server;
-            dynamic_reconfigure::Server<ObjectFinderConfig>::CallbackType f;
-            f = boost::bind(&ObjectFinder::reconfigure_callback, this, _1, _2);
-            server.setCallback(f);
+
+            dsrv_ = new dynamic_reconfigure::Server<ObjectFinderConfig>(nh);
+            dynamic_reconfigure::Server<ObjectFinderConfig>::CallbackType cb = boost::bind(
+                    &ObjectFinder::reconfigure_callback, this, _1, _2);
+            dsrv_->setCallback(cb);
+        }
+
+        ~ObjectFinder()
+        {
+            if (dsrv_)
+                delete dsrv_;
         }
 
         void reconfigure_callback(ObjectFinderConfig &config, uint32_t level) {
+            ROS_INFO("Reconfigure: min_object_size_: %d max_object_size_: %d threshold_occupied_: %d", config.min_object_size, config.max_object_size, config.threshold_occupied);
             min_object_size_ = config.min_object_size;
             max_object_size_ = config.max_object_size;
             threshold_occupied_ = config.threshold_occupied;
@@ -83,7 +88,7 @@ namespace object_finder {
             for (auto object : objects){
                 //TODO: add param for this
                 //Filter out things that are to big for the HSR
-                if (min_object_size_ <= object.size() <= max_object_size_){
+                if (min_object_size_ <= object.size() && object.size() <= max_object_size_){
                     geometry_msgs::Pose pose;
                     pose.orientation.w = 1.0;
                     cm.mapToWorld(object.front().x, object.front().y, pose.position.x, pose.position.y);
@@ -115,6 +120,7 @@ namespace object_finder {
         ros::Publisher object_publisher_;
         std::string global_frame_;
         int max_object_size_, min_object_size_, threshold_occupied_, frequency_;
+        dynamic_reconfigure::Server<ObjectFinderConfig> *dsrv_;
     };
 
 }

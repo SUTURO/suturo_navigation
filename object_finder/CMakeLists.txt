@@ -9,13 +9,13 @@ find_package(catkin REQUIRED
 )
 
 generate_dynamic_reconfigure_options(
-        cfg/ObjectFinder.cfg
+    cfg/ObjectFinder.cfg
 )
 
 catkin_package(
     INCLUDE_DIRS include
     LIBRARIES ${PROJECT_NAME}
-    CATKIN_DEPENDS roscpp costmap_2d
+    CATKIN_DEPENDS roscpp costmap_2d dynamic_reconfigure
 )
 
 include_directories(
@@ -26,16 +26,12 @@ add_library(static_clearing_layer src/static_clearing_layer.cpp)
 add_dependencies(static_clearing_layer ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(static_clearing_layer ${catkin_LIBRARIES})
 
-#add_library(object_finder src/object_finder.cpp)
-#add_dependencies(object_finder ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-#target_link_libraries(object_finder ${catkin_LIBRARIES})
-
-add_executable(object_finder_node src/object_finder_node.cpp)
-add_dependencies(object_finder_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_gencfg)
-target_link_libraries(object_finder_node ${catkin_LIBRARIES})# object_finder)
+add_executable(object_finder src/object_finder_node.cpp)
+add_dependencies(object_finder ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_gencfg)
+target_link_libraries(object_finder ${catkin_LIBRARIES})# object_finder)
 
 install( TARGETS
-    object_finder_node
+    object_finder
     DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

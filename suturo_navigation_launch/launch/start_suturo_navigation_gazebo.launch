@@ -1,10 +1,10 @@
 <launch>
-    <arg name="run_obstacle_finder" default="true"/>
+    <arg name="run_object_finder" default="true"/>
     <arg name="run_nav_fix" default="false"/>
     <arg name="run_path_planner" default="true"/>
 
     <include file="$(find suturo_navigation_launch)/launch/start_suturo_navigation.launch">
-        <arg name="run_obstacle_finder" value="$(arg run_obstacle_finder)"/>
+        <arg name="run_object_finder" value="$(arg run_object_finder)"/>
         <arg name="run_nav_fix" value="$(arg run_nav_fix)"/>
         <arg name="run_path_planner" value="$(arg run_path_planner)"/>
     </include>

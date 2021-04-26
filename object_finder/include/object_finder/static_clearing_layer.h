@@ -71,6 +71,7 @@ namespace object_finder
         void reconfigureCB(costmap_2d::GenericPluginConfig &config, uint32_t level);
 
         unsigned char interpretValue(unsigned char value);
+        void inflate_cells(costmap_2d::Costmap2D& master_grid, int min_i, int min_j, int max_i, int max_j);
 
         std::string global_frame_;  ///< @brief The global frame for the costmap
         std::string map_frame_;  /// @brief frame that map is located in
@@ -82,6 +83,7 @@ namespace object_finder
         ros::Subscriber map_sub_, map_update_sub_;
 
         unsigned char lethal_threshold_, unknown_cost_value_;
+        double inflation_radius_;
 
         dynamic_reconfigure::Server<costmap_2d::GenericPluginConfig> *dsrv_;
     };

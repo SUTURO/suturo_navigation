@@ -74,6 +74,8 @@ namespace object_finder
         nh.param("lethal_cost_threshold", temp_lethal_threshold, int(100));
         nh.param("unknown_cost_value", temp_unknown_cost_value, int(-1));
 
+        nh.param("inflation_radius", inflation_radius_, 0.0);
+
         lethal_threshold_ = std::max(std::min(temp_lethal_threshold, 100), 0);
         unknown_cost_value_ = temp_unknown_cost_value;
 
@@ -285,7 +287,7 @@ namespace object_finder
 
         if (!layered_costmap_->isRolling())
         {
-            updateWithOverwrite(master_grid, min_i, min_j, max_i, max_j);
+            inflate_cells(master_grid, min_i, min_j, max_i, max_j);
         }
         else
         {
@@ -321,6 +323,33 @@ namespace object_finder
                         master_grid.setCost(i, j, getCost(mx, my));
                     }
                 }
+            }
+        }
+    }
+
+    void StaticClearingLayer::inflate_cells(costmap_2d::Costmap2D& master_grid, int min_i, int min_j, int max_i, int max_j)
+    {
+        int r = static_cast<int>(inflation_radius_ / layered_costmap_->getCostmap()->getResolution());
+        if (!enabled_)
+            return;
+        unsigned char* master = master_grid.getCharMap();
+        unsigned int span = master_grid.getSizeInCellsX();
+        for (int j = min_j; j < max_j; j++)
+        {
+            unsigned int it = span*j+min_i;
+            for (int i = min_i; i < max_i; i++) {
+                if (costmap_[it] == FREE_SPACE)
+                {
+                    for (int jj = std::max(min_j, j - r); jj < std::min(max_j, j + r + 1); jj++) {
+                        int min_ii = std::max(min_i, i - r);
+                        unsigned int it_2 = span * jj + min_ii;
+                        for (int ii = min_ii; ii < std::min(max_i, i + r + 1); ii++) {
+                            master[it_2] = FREE_SPACE;
+                            it_2++;
+                        }
+                    }
+                }
+                it++;
             }
         }
     }
