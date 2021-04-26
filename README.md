@@ -6,7 +6,7 @@ Corresponding HSR documentation: [7.6.3 Map](https://docs.hsr.io/manual_en/devel
 ### Using the simulator
 #### Loading the world
 ```bash
-roslaunch mapping_hector_slam map_world.launch world_name:=/path/to/world.world
+roslaunch suturo_bringup mapping.launch world:=/path/to/world.world
 ```
 By default *robot_pos* is set to *-x 0 -y 0 -z 0 -Y 0* it can be adjusted the same way as the world but is optional.
 
