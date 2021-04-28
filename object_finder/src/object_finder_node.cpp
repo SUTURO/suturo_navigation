@@ -5,12 +5,25 @@
 #include <geometry_msgs/PoseArray.h>
 #include <dynamic_reconfigure/server.h>
 #include <object_finder/ObjectFinderConfig.h>
+#include <tf/transform_listener.h>
+
+#include <cmath>
 
 struct pos {
     unsigned int x;
     unsigned int y;
     unsigned int i;
 };
+
+static double get_dist_xy(const geometry_msgs::Point &a, const tf::Vector3 &b)
+{
+    return sqrt(pow(abs(a.x - b.getX()), 2) + pow(abs(a.y - b.getY()), 2));
+}
+
+static double get_angle_xy(const geometry_msgs::Point &a, const geometry_msgs::Point &b)
+{
+    return atan2(a.y - b.y, a.x - b.x);
+}
 
 namespace object_finder {
 
@@ -20,9 +33,17 @@ namespace object_finder {
             ros::NodeHandle nh("~");
             costmap_ = std::make_shared<costmap_2d::Costmap2DROS>("costmap", tf);
             object_publisher_ = nh.advertise<geometry_msgs::PoseArray>("object_finder", 10);
-            ros::param::param<std::string>("global_frame_", global_frame_, "map");
-            ros::param::param<int>("frequency_", frequency_, 1);
-
+            ros::param::param<std::string>("global_frame", global_frame_, "map");
+            ros::param::param<std::string>("robot_base_frame", robot_base_frame_, "base_footprint");
+            ros::param::param<int>("frequency", frequency_, 1);
+            ros::param::param<bool>("use_probability", use_probability_, true);
+            ros::param::param<int>("min_confidence", min_confidence_, 50);
+            ros::param::param<int>("p_obj", p_obj_, 70);
+            ros::param::param<int>("p_free", p_free_, 40);
+            ros::param::param<double>("min_angle", min_angle_, -0.52);
+            ros::param::param<double>("max_angle", max_angle_, 0.52);
+            ros::param::param<double>("update_range", update_range_, 3.0);
+            ros::param::param<double>("max_dist_error", max_dist_error_, 0.05);
             dsrv_ = new dynamic_reconfigure::Server<ObjectFinderConfig>(nh);
             dynamic_reconfigure::Server<ObjectFinderConfig>::CallbackType cb = boost::bind(
                     &ObjectFinder::reconfigure_callback, this, _1, _2);
@@ -35,11 +56,106 @@ namespace object_finder {
                 delete dsrv_;
         }
 
+        void run() {
+            objects_.clear();
+            confidence_.clear();
+            ros::Rate loop_rate(frequency_);
+            while (ros::ok()) {
+                std::vector<geometry_msgs::Pose> found_objects = get_objects();
+                if(use_probability_){
+                    std::vector<geometry_msgs::Pose> p_objects;
+                    update_confidence(found_objects);
+                    int i = 0;
+                    for(auto conf : confidence_){
+                        if(conf >= min_confidence_){
+                            p_objects.push_back(objects_[i]);
+                        }
+                        i++;
+                    }
+                    publish_objects(p_objects);
+                } else{
+                    publish_objects(found_objects);
+                }
+                ros::spinOnce();
+                loop_rate.sleep();
+            }
+        }
+
+    private:
+        std::shared_ptr<costmap_2d::Costmap2DROS> costmap_;
+        std::vector<geometry_msgs::Pose> objects_;
+        std::vector<int> confidence_;
+        ros::Publisher object_publisher_;
+        int max_object_size_, min_object_size_, threshold_occupied_, frequency_, min_confidence_, p_obj_, p_free_;
+        dynamic_reconfigure::Server<ObjectFinderConfig> *dsrv_;
+        bool use_probability_;
+        double min_angle_, max_angle_, update_range_, max_dist_error_;
+        tf::TransformListener tf_listener_;
+        std::string robot_base_frame_, global_frame_;
+
         void reconfigure_callback(ObjectFinderConfig &config, uint32_t level) {
-            ROS_INFO("Reconfigure: min_object_size_: %d max_object_size_: %d threshold_occupied_: %d", config.min_object_size, config.max_object_size, config.threshold_occupied);
+            ROS_INFO_STREAM("Reconfiguring");
             min_object_size_ = config.min_object_size;
             max_object_size_ = config.max_object_size;
             threshold_occupied_ = config.threshold_occupied;
+            min_confidence_ = config.threshold_occupied;
+            p_obj_ = config.p_obj;
+            p_free_ = config.p_free;
+            min_angle_ = config.min_angle;
+            max_angle_ = config.max_angle;
+            update_range_ = config.update_range;
+            max_dist_error_ = config.max_dist_error;
+            use_probability_ = config.use_probability;
+        }
+
+        int calculate_confidence(const int prior, const int observation){
+            double odds = exp(log(prior / (100.0 - prior)) + log(observation / (100.0 - observation)));
+            return std::min(static_cast<int>(1.0 - (1.0 / (1.0 + odds)) * 100.0) + 1, 99);
+        }
+
+        bool in_update_range(const geometry_msgs::Pose &object_pose, const tf::StampedTransform &robot_transform){
+            geometry_msgs::PoseStamped ps, ps_out;
+            ps.pose = object_pose;
+            ps.header.frame_id = global_frame_;
+            ps.header.stamp = robot_transform.stamp_;
+            tf_listener_.transformPose(robot_base_frame_, ps, ps_out);
+            double angle = tf::getYaw(ps_out.pose.orientation);
+            double dist = sqrt(pow(ps_out.pose.position.x, 2) + pow(ps_out.pose.position.y, 2));
+            return dist <= update_range_ && angle >= min_angle_ && angle <= max_angle_;
+        }
+
+        void update_confidence(const std::vector<geometry_msgs::Pose> &found_objects){
+            tf::StampedTransform robot_transform;
+            try{
+                tf_listener_.lookupTransform(robot_base_frame_, global_frame_, ros::Time(0), robot_transform);
+                std::list<int> new_objects;
+                for(int i=0; i<found_objects.size(); i++){
+                    new_objects.push_back(i);
+                }
+                int i = 0;
+                for(auto object : objects_) {
+                    if(in_update_range(object, robot_transform)){
+                        bool found = false;
+                        for(auto found_object : found_objects){
+                            if(get_dist_xy(found_object.position, robot_transform.getOrigin()) <= max_dist_error_){
+                                confidence_[i] = calculate_confidence(confidence_[i], p_obj_);
+                                new_objects.remove(i);
+                                found = true;
+                            }
+                        }
+                        if(!found) {
+                            confidence_[i] = calculate_confidence(confidence_[i], p_free_);
+                        }
+                    }
+                    i++;
+                }
+                for(auto new_object_i : new_objects){
+                    objects_.push_back(found_objects[new_object_i]);
+                    confidence_.push_back(50);
+                }
+            } catch (tf::TransformException ex){
+                ROS_WARN_STREAM("Unable to update object confidence: " << ex.what());
+            }
         }
 
         std::vector<geometry_msgs::Pose> get_objects() {
@@ -91,7 +207,14 @@ namespace object_finder {
                 if (min_object_size_ <= object.size() && object.size() <= max_object_size_){
                     geometry_msgs::Pose pose;
                     pose.orientation.w = 1.0;
-                    cm.mapToWorld(object.front().x, object.front().y, pose.position.x, pose.position.y);
+                    for(pos p : object){
+                        double wx, wy;
+                        cm.mapToWorld(p.x, p.y, wx, wy);
+                        pose.position.x += wx;
+                        pose.position.y += wy;
+                    }
+                    pose.position.x /= object.size();
+                    pose.position.y /= object.size();
                     result.push_back(pose);
                 }
             }
@@ -105,22 +228,6 @@ namespace object_finder {
             pa.poses = poses;
             object_publisher_.publish(pa);
         }
-
-        void run() {
-            ros::Rate loop_rate(frequency_);
-            while (ros::ok()) {
-                publish_objects(get_objects());
-                ros::spinOnce();
-                loop_rate.sleep();
-            }
-        }
-
-    private:
-        std::shared_ptr<costmap_2d::Costmap2DROS> costmap_;
-        ros::Publisher object_publisher_;
-        std::string global_frame_;
-        int max_object_size_, min_object_size_, threshold_occupied_, frequency_;
-        dynamic_reconfigure::Server<ObjectFinderConfig> *dsrv_;
     };
 
 }
