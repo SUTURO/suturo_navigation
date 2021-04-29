@@ -15,9 +15,9 @@ struct pos {
     unsigned int i;
 };
 
-static double get_dist_xy(const geometry_msgs::Point &a, const tf::Vector3 &b)
+static double get_dist_xy(const geometry_msgs::Point &a, const geometry_msgs::Point &b)
 {
-    return sqrt(pow(abs(a.x - b.getX()), 2) + pow(abs(a.y - b.getY()), 2));
+    return sqrt(pow(abs(a.x - b.x), 2) + pow(abs(a.y - b.y), 2));
 }
 
 static double get_angle_xy(const geometry_msgs::Point &a, const geometry_msgs::Point &b)
@@ -67,6 +67,7 @@ namespace object_finder {
                     update_confidence(found_objects);
                     int i = 0;
                     for(auto conf : confidence_){
+                        ROS_INFO_STREAM("Object: " << i << " confidence: " << conf);
                         if(conf >= min_confidence_){
                             p_objects.push_back(objects_[i]);
                         }
@@ -110,7 +111,7 @@ namespace object_finder {
 
         int calculate_confidence(const int prior, const int observation){
             double odds = exp(log(prior / (100.0 - prior)) + log(observation / (100.0 - observation)));
-            return std::min(static_cast<int>(1.0 - (1.0 / (1.0 + odds)) * 100.0) + 1, 99);
+            return std::min(static_cast<int>(odds / (1.0 + odds) * 100.0) + 1, 99);
         }
 
         bool in_update_range(const geometry_msgs::Pose &object_pose, const tf::StampedTransform &robot_transform){
@@ -119,7 +120,7 @@ namespace object_finder {
             ps.header.frame_id = global_frame_;
             ps.header.stamp = robot_transform.stamp_;
             tf_listener_.transformPose(robot_base_frame_, ps, ps_out);
-            double angle = tf::getYaw(ps_out.pose.orientation);
+            double angle = atan2(ps_out.pose.position.y, ps_out.pose.position.x);
             double dist = sqrt(pow(ps_out.pose.position.x, 2) + pow(ps_out.pose.position.y, 2));
             return dist <= update_range_ && angle >= min_angle_ && angle <= max_angle_;
         }
@@ -134,18 +135,20 @@ namespace object_finder {
                 }
                 int i = 0;
                 for(auto object : objects_) {
-                    if(in_update_range(object, robot_transform)){
-                        bool found = false;
-                        for(auto found_object : found_objects){
-                            if(get_dist_xy(found_object.position, robot_transform.getOrigin()) <= max_dist_error_){
+                    bool iur = in_update_range(object, robot_transform);
+                    bool found = false;
+                    for(auto found_object : found_objects){
+                        double dist = get_dist_xy(found_object.position, object.position);
+                        if(dist <= max_dist_error_){
+                            if(iur) {
                                 confidence_[i] = calculate_confidence(confidence_[i], p_obj_);
-                                new_objects.remove(i);
-                                found = true;
                             }
+                            new_objects.remove(i);
+                            found = true;
                         }
-                        if(!found) {
-                            confidence_[i] = calculate_confidence(confidence_[i], p_free_);
-                        }
+                    }
+                    if(!found && iur) {
+                        confidence_[i] = calculate_confidence(confidence_[i], p_free_);
                     }
                     i++;
                 }
