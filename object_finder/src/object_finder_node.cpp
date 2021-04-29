@@ -42,7 +42,8 @@ namespace object_finder {
             ros::param::param<int>("p_free", p_free_, 40);
             ros::param::param<double>("min_angle", min_angle_, -0.52);
             ros::param::param<double>("max_angle", max_angle_, 0.52);
-            ros::param::param<double>("update_range", update_range_, 3.0);
+            ros::param::param<double>("max_update_range", max_update_range_, 3.0);
+            ros::param::param<double>("min_update_range", min_update_range_, 1.0);
             ros::param::param<double>("max_dist_error", max_dist_error_, 0.05);
             dsrv_ = new dynamic_reconfigure::Server<ObjectFinderConfig>(nh);
             dynamic_reconfigure::Server<ObjectFinderConfig>::CallbackType cb = boost::bind(
@@ -90,7 +91,7 @@ namespace object_finder {
         int max_object_size_, min_object_size_, threshold_occupied_, frequency_, min_confidence_, p_obj_, p_free_;
         dynamic_reconfigure::Server<ObjectFinderConfig> *dsrv_;
         bool use_probability_;
-        double min_angle_, max_angle_, update_range_, max_dist_error_;
+        double min_angle_, max_angle_, max_update_range_, min_update_range_, max_dist_error_;
         tf::TransformListener tf_listener_;
         std::string robot_base_frame_, global_frame_;
 
@@ -104,7 +105,8 @@ namespace object_finder {
             p_free_ = config.p_free;
             min_angle_ = config.min_angle;
             max_angle_ = config.max_angle;
-            update_range_ = config.update_range;
+            max_update_range_ = config.max_update_range;
+            min_update_range_ = config.min_update_range;
             max_dist_error_ = config.max_dist_error;
             use_probability_ = config.use_probability;
         }
@@ -122,7 +124,7 @@ namespace object_finder {
             tf_listener_.transformPose(robot_base_frame_, ps, ps_out);
             double angle = atan2(ps_out.pose.position.y, ps_out.pose.position.x);
             double dist = sqrt(pow(ps_out.pose.position.x, 2) + pow(ps_out.pose.position.y, 2));
-            return dist <= update_range_ && angle >= min_angle_ && angle <= max_angle_;
+            return dist >= min_update_range_ && dist <= max_update_range_ && angle >= min_angle_ && angle <= max_angle_;
         }
 
         void update_confidence(const std::vector<geometry_msgs::Pose> &found_objects){
