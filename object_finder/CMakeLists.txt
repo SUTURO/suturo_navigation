@@ -6,6 +6,7 @@ find_package(catkin REQUIRED
     roscpp
     costmap_2d
     dynamic_reconfigure
+    navigation_msgs
 )
 
 generate_dynamic_reconfigure_options(
@@ -15,7 +16,7 @@ generate_dynamic_reconfigure_options(
 catkin_package(
     INCLUDE_DIRS include
     LIBRARIES ${PROJECT_NAME}
-    CATKIN_DEPENDS roscpp costmap_2d dynamic_reconfigure
+    CATKIN_DEPENDS roscpp costmap_2d dynamic_reconfigure navigation_msgs
 )
 
 include_directories(

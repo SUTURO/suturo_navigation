@@ -6,7 +6,9 @@
 #include <dynamic_reconfigure/server.h>
 #include <object_finder/ObjectFinderConfig.h>
 #include <tf/transform_listener.h>
+#include <navigation_msgs/Area.h>
 
+#include <mutex>
 #include <cmath>
 
 /**
@@ -68,6 +70,7 @@ namespace object_finder {
             dynamic_reconfigure::Server<ObjectFinderConfig>::CallbackType cb = boost::bind(
                     &ObjectFinder::reconfigure_callback, this, _1, _2);
             dsrv_->setCallback(cb);
+            ignore_areas_sub_ = nh.subscribe("ignore_area", 10, &ObjectFinder::ignore_area_callback, this);
         }
 
         ~ObjectFinder()
@@ -99,10 +102,10 @@ namespace object_finder {
                         }
                         i++;
                     }
-                    publish_objects(p_objects);
+                    publish_objects(filter_by_ignored_areas(p_objects));
                 // without probability
                 } else{
-                    publish_objects(found_objects);
+                    publish_objects(filter_by_ignored_areas(found_objects));
                 }
                 ros::spinOnce();
                 loop_rate.sleep();
@@ -120,6 +123,16 @@ namespace object_finder {
         double min_angle_, max_angle_, max_update_range_, min_update_range_, max_dist_error_;
         tf::TransformListener tf_listener_;
         std::string robot_base_frame_, global_frame_;
+        std::mutex ignore_areas_mutex_;
+        std::vector<navigation_msgs::Area> ignore_areas_;
+        ros::Subscriber ignore_areas_sub_;
+
+
+        void ignore_area_callback(const navigation_msgs::AreaConstPtr& msg) {
+            ignore_areas_mutex_.lock();
+                ignore_areas_.push_back(*msg);
+            ignore_areas_mutex_.unlock();
+        }
 
         /**
          * Callback function for dynamic reconfigure
@@ -140,6 +153,28 @@ namespace object_finder {
             min_update_range_ = config.min_update_range;
             max_dist_error_ = config.max_dist_error;
             use_probability_ = config.use_probability;
+        }
+
+        std::vector<geometry_msgs::Pose> filter_by_ignored_areas(const std::vector<geometry_msgs::Pose> &found_objects) {
+            std::vector<geometry_msgs::Pose> result;
+            ignore_areas_mutex_.lock();
+            std::vector<navigation_msgs::Area> areas(ignore_areas_);
+            ignore_areas_mutex_.unlock();
+
+            for (auto obj : found_objects){
+                bool inside = false;
+                for (auto area : areas){
+                    if(get_dist_xy(obj.position, area.center) <= area.radius){
+                        inside = true;
+                        break;
+                    }
+                }
+                if(!inside){
+                    result.push_back(obj);
+                }
+            }
+
+            return result;
         }
 
         /**
