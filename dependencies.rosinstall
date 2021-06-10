@@ -1,5 +1,5 @@
 - git:
     local-name: suturo_resources
     uri: https://github.com/SUTURO/suturo_resources.git
-    version: master
+    version: robocup
 

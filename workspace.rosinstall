@@ -1,5 +1,5 @@
 - git:
     local-name: suturo_navigation
     uri: https://github.com/SUTURO/suturo_navigation.git
-    version: master
+    version: robocup
 
