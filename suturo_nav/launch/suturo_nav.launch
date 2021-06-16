@@ -1,0 +1,9 @@
+<launch>
+    <node pkg="move_base" type="move_base" respawn="false" name="suturo_nav" output="screen">
+        <remap from="/cmd_vel" to="/hsrb/command_velocity" />
+        <remap from="/move_base_simple/goal" to="/suturo_nav_simple/goal" />
+        <rosparam file="$(find suturo_nav)/config/costmap.yaml" command="load" ns="global_costmap" /> 
+        <rosparam file="$(find suturo_nav)/config/costmap.yaml" command="load" ns="local_costmap" />
+        <rosparam file="$(find suturo_nav)/config/local_planner.yaml" command="load" />
+    </node>
+</launch> 
