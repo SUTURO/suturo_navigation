@@ -7,7 +7,7 @@
         if="$(eval run_nav_fix == true)"/>
 
     <group if="$(eval arg('run_object_finder') == true)">
-        <node pkg="object_finder" type="object_finder" name="object_finder" output="screen">
+        <node pkg="object_finder" type="object_finder" name="object_finder">
             <rosparam file="$(find object_finder)/params/costmap_params.yaml" command="load" ns="costmap"/>
         </node>
     </group>
