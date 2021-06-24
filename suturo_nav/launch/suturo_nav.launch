@@ -2,6 +2,15 @@
     <node pkg="move_base" type="move_base" respawn="false" name="suturo_nav" output="screen">
         <remap from="/cmd_vel" to="/hsrb/command_velocity" />
         <remap from="/move_base_simple/goal" to="/suturo_nav_simple/goal" />
+        <remap from="/move_base/goal" to="/suturo_nav/goal" />
+        <remap from="/move_base/cancel" to="/suturo_nav/cancel" />
+        <remap from="/move_base/feedback" to="/suturo_nav/feedback" />
+        <remap from="/move_base/result" to="/suturo_nav/result" />
+        <remap from="/move_base/status" to="/suturo_nav/status" />
+        <remap from="/odom" to="/hsrb/odom" />
+        <param name="planner_frequency" value="1.0" />
+        <param name="controller_frequency" value="10.0" />
+        <param name="base_local_planner" value="dwa_local_planner/DWAPlannerROS"/>
         <rosparam file="$(find suturo_nav)/config/costmap.yaml" command="load" ns="global_costmap" /> 
         <rosparam file="$(find suturo_nav)/config/costmap.yaml" command="load" ns="local_costmap" />
         <rosparam file="$(find suturo_nav)/config/local_planner.yaml" command="load" />
